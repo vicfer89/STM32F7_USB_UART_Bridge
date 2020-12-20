@@ -23,7 +23,7 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
-
+#include "usart.h"
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -221,11 +221,36 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   /* 6      | bDataBits  |   1   | Number Data bits (5, 6, 7, 8 or 16).          */
   /*******************************************************************************/
     case CDC_SET_LINE_CODING:
+    	/* A new block has to be generated in order to allow variable creation inside a case statement */
+    	{ // Begin bDTERate block
+    		/* 1 - Get uart configurations from pbuf */
+    		uint32_t bDTERate = 0;
+
+    		memcpy(&bDTERate, pbuf, 4);
+
+    		/* 2 - set huart structure with new information*/
+    		huart2.Init.BaudRate = bDTERate;
+    	} // End bDTERate block
+    	/* 3 - Stop DMA and DeInit uart functions*/
+    	HAL_UART_DMAStop(&huart2);
+    	HAL_UART_MspDeInit(&huart2);
+
+    	/* 4 - ReStart uart and begin data reception */
+		if (HAL_UART_Init(&huart2) != HAL_OK)
+		{
+		Error_Handler();
+		}
+
+		//HAL_UART_Receive_DMA(huart, pData, Size);
 
     break;
 
     case CDC_GET_LINE_CODING:
-
+    	/* Get data from huart structure */
+    	memcpy(pbuf, &huart2.Init.BaudRate, sizeof(uint32_t));
+    	pbuf[4] = huart2.Init.StopBits;
+    	pbuf[5] = huart2.Init.Parity;
+    	pbuf[6] = huart2.Init.WordLength;
     break;
 
     case CDC_SET_CONTROL_LINE_STATE:
