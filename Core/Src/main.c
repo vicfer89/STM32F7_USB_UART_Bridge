@@ -20,7 +20,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "dma.h"
-#include "eth.h"
+#include "lwip.h"
 #include "tim.h"
 #include "usart.h"
 #include "usb_device.h"
@@ -91,12 +91,12 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_ETH_Init();
   MX_USART3_UART_Init();
   MX_USART2_UART_Init();
   MX_TIM13_Init();
   MX_TIM14_Init();
   MX_USB_DEVICE_Init();
+  MX_LWIP_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
