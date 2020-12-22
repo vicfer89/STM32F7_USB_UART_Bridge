@@ -21,7 +21,9 @@
 #include "tim.h"
 
 /* USER CODE BEGIN 0 */
-
+/* Periodically, the state of the buffer "UserTxBuffer" is checked.
+   The period depends on CDC_POLLING_INTERVAL */
+#define CDC_POLLING_INTERVAL             30 /* in ms. The max is 65 and the min is 1 */
 /* USER CODE END 0 */
 
 TIM_HandleTypeDef htim13;
@@ -32,9 +34,9 @@ void MX_TIM13_Init(void)
 {
 
   htim13.Instance = TIM13;
-  htim13.Init.Prescaler = 0;
+  htim13.Init.Prescaler = 84-1;
   htim13.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim13.Init.Period = 65535;
+  htim13.Init.Period = (CDC_POLLING_INTERVAL*1000) - 1;
   htim13.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim13.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim13) != HAL_OK)
