@@ -20,6 +20,7 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#include <usbd_cdc.h>
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
@@ -253,12 +254,18 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
     		huart2.Init.BaudRate = bDTERate;
     	} // End bDTERate block
     	/* 3 - Stop DMA and DeInit uart functions*/
-    	HAL_UART_DMAStop(&huart2);
-    	HAL_UART_MspDeInit(&huart2);
+    	//HAL_UART_DMAStop(&huart2);
+    	//HAL_UART_MspDeInit(&huart2);
 
     	/* 4 - ReStart uart and begin data reception */
 		if (HAL_UART_Init(&huart2) != HAL_OK)
 		{
+		Error_Handler();
+		}
+
+		if(HAL_UART_Receive_IT(&huart2, (uint8_t *)UserTxBufferFS, 1) != HAL_OK)
+		{
+		// Transfer error in reception process
 		Error_Handler();
 		}
 
@@ -308,9 +315,10 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
-  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
-  USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-  return (USBD_OK);
+    USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
+    USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+	HAL_UART_Transmit_DMA(&huart2, Buf, *Len);
+	return (USBD_OK);
   /* USER CODE END 6 */
 }
 
@@ -339,8 +347,8 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
   return result;
 }
 
-/**
-  * @brief  CDC_TransmitCplt_FS
+/**dd
+  * @brief  CDC_cTransmitCplt_FS
   *         Data transmited callback
   *
   *         @note
