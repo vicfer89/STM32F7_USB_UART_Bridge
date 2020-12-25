@@ -25,10 +25,17 @@
 #include "usart.h"
 #include "usb_device.h"
 #include "gpio.h"
+#include "usbd_cdc_if.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#define APP_TX_DATA_SIZE 2048
+#define APP_RX_DATA_SIZE 2048
 
+extern uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
+extern uint8_t UserDMABuffer[APP_TX_DATA_SIZE];
+extern uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
+extern USBD_HandleTypeDef hUsbDeviceFS;
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -98,13 +105,45 @@ int main(void)
   MX_USB_DEVICE_Init();
   MX_LWIP_Init();
   /* USER CODE BEGIN 2 */
+  uint32_t UserTxBufPtrIn;
+  uint32_t UserTxBufPtrOut;
 
+	uint32_t buffptr = 0;
+	uint32_t buffsize = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
+
+		UserTxBufPtrIn = APP_TX_DATA_SIZE - huart2.hdmarx->Instance->NDTR;
+
+		if(UserTxBufPtrOut != UserTxBufPtrIn)
+		{
+		  if(UserTxBufPtrOut > UserTxBufPtrIn) /* Rollback */
+		  {
+			buffsize = APP_RX_DATA_SIZE - UserTxBufPtrOut;
+		  }
+		  else
+		  {
+			buffsize = UserTxBufPtrIn - UserTxBufPtrOut;
+		  }
+
+		  buffptr = UserTxBufPtrOut;
+
+		  USBD_CDC_SetTxBuffer(&hUsbDeviceFS, (uint8_t*)&UserDMABuffer[buffptr], buffsize);
+
+		  if(USBD_CDC_TransmitPacket(&hUsbDeviceFS) == USBD_OK)
+		  {
+			UserTxBufPtrOut += buffsize;
+			if (UserTxBufPtrOut >= APP_TX_DATA_SIZE)
+			{
+			  UserTxBufPtrOut = 0;
+			}
+		  }
+		}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

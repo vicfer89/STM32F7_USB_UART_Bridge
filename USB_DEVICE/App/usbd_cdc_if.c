@@ -95,6 +95,7 @@ uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 
 /** Data to send over USB CDC are stored in this buffer   */
 uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
+uint8_t UserDMABuffer[APP_TX_DATA_SIZE];
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
 uint32_t BuffLength;
@@ -160,20 +161,8 @@ USBD_CDC_ItfTypeDef USBD_Interface_fops_FS =
 static int8_t CDC_Init_FS(void)
 {
   /* USER CODE BEGIN 3 */
-  /* Begin IT reception process */
-  if(HAL_UART_Receive_IT(&huart2, (uint8_t *)UserTxBufferFS, 1) != HAL_OK)
-  {
-	/* Transfer error in reception process */
-	Error_Handler();
-  }
-
-  /*##-4- Start the TIM Base generation in interrupt mode ####################*/
-  /* Start Channel1 */
-  if(HAL_TIM_Base_Start_IT(&htim13) != HAL_OK)
-  {
-    /* Starting Error */
-    Error_Handler();
-  }
+  /* Begin DMA reception process */
+  HAL_UART_Receive_DMA(&huart2, (uint8_t *)UserDMABuffer, APP_TX_DATA_SIZE);
 
   /* Set Application Buffers */
   USBD_CDC_SetTxBuffer(&hUsbDeviceFS, UserTxBufferFS, 0);
@@ -263,11 +252,8 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 		Error_Handler();
 		}
 
-		if(HAL_UART_Receive_IT(&huart2, (uint8_t *)UserTxBufferFS, 1) != HAL_OK)
-		{
-		// Transfer error in reception process
-		Error_Handler();
-		}
+
+
 
 		//HAL_UART_Receive_DMA(huart, pData, Size);
 
@@ -371,61 +357,7 @@ static int8_t CDC_TransmitCplt_FS(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
 }
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */
-/**
-  * @brief  TIM period elapsed callback
-  * @param  htim: TIM handle
-  * @retval None
-  */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-  uint32_t buffptr;
-  uint32_t buffsize;
 
-  if(UserTxBufPtrOut != UserTxBufPtrIn)
-  {
-    if(UserTxBufPtrOut > UserTxBufPtrIn) /* Rollback */
-    {
-      buffsize = APP_RX_DATA_SIZE - UserTxBufPtrOut;
-    }
-    else
-    {
-      buffsize = UserTxBufPtrIn - UserTxBufPtrOut;
-    }
-
-    buffptr = UserTxBufPtrOut;
-
-    USBD_CDC_SetTxBuffer(&hUsbDeviceFS, (uint8_t*)&UserTxBufferFS[buffptr], buffsize);
-
-    if(USBD_CDC_TransmitPacket(&hUsbDeviceFS) == USBD_OK)
-    {
-      UserTxBufPtrOut += buffsize;
-      if (UserTxBufPtrOut == APP_RX_DATA_SIZE)
-      {
-        UserTxBufPtrOut = 0;
-      }
-    }
-  }
-}
-
-/**
-  * @brief  Rx Transfer completed callback
-  * @param  huart: UART handle
-  * @retval None
-  */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-  /* Increment Index for buffer writing */
-  UserTxBufPtrIn++;
-
-  /* To avoid buffer overflow */
-  if(UserTxBufPtrIn == APP_RX_DATA_SIZE)
-  {
-    UserTxBufPtrIn = 0;
-  }
-
-  /* Start another reception: provide the buffer pointer with offset and the buffer size */
-  HAL_UART_Receive_IT(huart, (uint8_t *)(UserTxBufferFS + UserTxBufPtrIn), 1);
-}
 /* USER CODE END PRIVATE_FUNCTIONS_IMPLEMENTATION */
 
 /**
