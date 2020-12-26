@@ -103,6 +103,8 @@ uint32_t UserTxBufPtrIn = 0;/* Increment this pointer or roll it back to
                                start address when data are received over USART */
 uint32_t UserTxBufPtrOut = 0; /* Increment this pointer or roll it back to
                                  start address when data are sent over USB */
+
+uint8_t fIsSending = 0;
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -301,9 +303,9 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
+	HAL_UART_Transmit(&huart2, Buf, *Len, 1000); // Hay que esperar a que termine de enviar
     USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
     USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-	HAL_UART_Transmit_DMA(&huart2, Buf, *Len);
 	return (USBD_OK);
   /* USER CODE END 6 */
 }
