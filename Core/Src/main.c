@@ -120,13 +120,19 @@ int main(void)
 
 		UserTxBufPtrIn = APP_TX_DATA_SIZE - huart2.hdmarx->Instance->NDTR;
 
-		if(UserTxBufPtrOut != UserTxBufPtrIn)
+		if(UserTxBufPtrOut != UserTxBufPtrIn) // Comprobamos que hay nuevos datos
 		{
+			/* Si por ejemplo User UserTxBufPtrOut = 2040 y llegan 10 bytes,  UserTxBufPtrIn pasa a ser = 2.
+			 * Al darse la condición de que UserTxBufPtrOut > UserTxBufPtrIn, entonces se procesa la cadena
+			 * hasta el final del buffer, siendo el tamaño a enviar los datos que quedan hasta el final del buffer
+			 * : buffsize = APP_RX_DATA_SIZE - UserTxBufPtrOut = 8
+			 * En el siguiente envío se enviarán los datos que se han almacenado durante el rollback y que aunque
+			 * estén recibidos, no se han enviado.*/
 		  if(UserTxBufPtrOut > UserTxBufPtrIn) /* Rollback */
 		  {
 			buffsize = APP_RX_DATA_SIZE - UserTxBufPtrOut;
 		  }
-		  else
+		  else // si no hay roll back, se trabaja con los datos en el buffer
 		  {
 			buffsize = UserTxBufPtrIn - UserTxBufPtrOut;
 		  }
@@ -138,7 +144,9 @@ int main(void)
 		  if(USBD_CDC_TransmitPacket(&hUsbDeviceFS) == USBD_OK)
 		  {
 			UserTxBufPtrOut += buffsize;
-			if (UserTxBufPtrOut >= APP_TX_DATA_SIZE)
+			/* Si se llega al final del buffer como se desribe antes, se vuelve al punto 0 del mismo para
+			 * continuar con la operación. En el siguiente envío, se enviará el resto de datos.*/
+			if (UserTxBufPtrOut == APP_TX_DATA_SIZE)
 			{
 			  UserTxBufPtrOut = 0;
 			}
